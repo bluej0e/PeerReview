@@ -1,0 +1,12 @@
+package-as: PeerReview
+enable-toc-creation: no
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+ignore:
+  - README.md
+  - RELEASING.md
+  - tests
+  - .github
