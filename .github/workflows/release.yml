@@ -2,7 +2,7 @@
 # PeerReview.toc and this workflow runs the tests, tags the commit, builds the zip and
 # uploads it to CurseForge.
 #
-# The file ".release" decides the release type: "beta" tags v<version>-beta (uploaded as a
+# The file "release-type" decides the release type: "beta" tags v<version>-beta (uploaded as a
 # Beta file), "release" tags v<version>.
 #
 # Needs the repository secret CF_API_KEY. The project ID is in PeerReview.toc.
@@ -13,7 +13,7 @@ on:
     branches: [main]
     paths:
       - "PeerReview.toc"
-      - ".release"
+      - "release-type"
       - ".github/workflows/release.yml"
   workflow_dispatch:
 
@@ -41,7 +41,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version=$(sed -n 's/^## Version: *//p' PeerReview.toc | tr -d '\r')
-          kind=$(tr -d ' \r\n' < .release 2>/dev/null || echo beta)
+          kind=$(tr -d ' \r\n' < release-type 2>/dev/null || echo beta)
           if [ "$kind" = "release" ]; then tag="v$version"; else tag="v$version-beta"; fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           # A version counts as released once its GitHub release exists.

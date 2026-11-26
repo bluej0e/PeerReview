@@ -10,5 +10,5 @@ ignore:
   - RELEASING.md
   - tests
   - .github
-  - .release
+  - release-type
   - .packager
