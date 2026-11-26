@@ -10,3 +10,4 @@ ignore:
   - RELEASING.md
   - tests
   - .github
+  - .release
