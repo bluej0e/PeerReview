@@ -1,5 +1,9 @@
 # Peer Review
 
+## 0.8.1
+
+- New command: `/peer version` shows which version you have installed.
+
 ## 0.8.0
 
 First public beta.

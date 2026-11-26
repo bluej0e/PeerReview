@@ -115,7 +115,9 @@ check("two peers on a newer version: notice once", told())
 recv("H~1~not-a-version", "Peer Three-Azeroth"); recv("H~1~0.1.0", "Peer Four-Azeroth")
 -- hello carries our version
 SENT = {}; ns.Sync.lastHello = nil; ns.Sync.Hello(); Advance(5)
-check("hello carries the version", sent("^H~1~0%.8%.0$") ~= nil, SENT[1] and SENT[1].text)
+check("hello carries the version", sent("^H~1~" .. ns.VERSION:gsub("%.", "%%.") .. "$") ~= nil, SENT[1] and SENT[1].text)
+PRINTS = {}; SlashCmdList.PEERREVIEW("version")
+check("/peer version prints the version", (PRINTS[1] or ""):find("version " .. ns.VERSION, 1, true) ~= nil, PRINTS[1])
 -- minimap click with nobody to rate opens the list
 ns.UI.list:Hide(); ns.UI.RateOrList()
 check("nothing to rate: click opens my ratings", ns.UI.list:IsShown())

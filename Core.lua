@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 
 -- The version comes from the .toc file; the constant is only a fallback.
-ns.VERSION = "0.8.0"
+ns.VERSION = "0.8.1"
 do
   local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
   local ok, v = pcall(function() return get and get(ADDON, "Version") end)
@@ -694,8 +694,10 @@ SlashCmdList["PEERREVIEW"] = function(msg)
     ns.UI.Test()
   elseif cmd == "sync" then
     for _, line in ipairs(ns.Sync.Diag()) do ns.Print(line) end
+  elseif cmd == "version" then
+    ns.Print("version " .. ns.VERSION .. ".")
   elseif cmd == "help" then
-    ns.Print("/peer (settings) | list (your ratings) | rate (current group) | pending (players you skipped today) | test (sample popup) | sync (status) | /peer Name (look someone up)")
+    ns.Print("/peer (settings) | list (your ratings) | rate (current group) | pending (players you skipped today) | test (sample popup) | sync (status) | version | /peer Name (look someone up)")
   else
     local full, key = ns.Full(msg)
     local line = key and ns.Summary(key)
