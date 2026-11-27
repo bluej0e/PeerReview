@@ -12,3 +12,4 @@ ignore:
   - .github
   - release-type
   - .packager
+  - media
