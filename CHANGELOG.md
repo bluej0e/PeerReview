@@ -1,5 +1,17 @@
 # Peer Review
 
+## 0.9.0
+
+Everything from the 0.8.2 to 0.8.6 betas, now as a full release:
+
+- When someone leaves your group while you stay, the popup asks about them right away.
+- Skip button on every player, and a no-entry icon for "never ask me about this player".
+- New thumb icons and the Peer Review logo on the minimap button.
+- See your own rating under My ratings.
+- Preview the popup from the settings, and drag any window where you want it. Positions are remembered.
+- Feedback and bug report button in the settings.
+- Sharing uses a hidden realm-wide channel automatically, so votes reach players outside your guild and group.
+
 ## 0.8.6
 
 - When someone leaves your group while you stay, the popup asks about them right away and shows their current rating.

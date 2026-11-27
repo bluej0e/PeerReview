@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 
 -- The version comes from the .toc file; the constant is only a fallback.
-ns.VERSION = "0.8.6"
+ns.VERSION = "0.9.0"
 do
   local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
   local ok, v = pcall(function() return get and get(ADDON, "Version") end)
