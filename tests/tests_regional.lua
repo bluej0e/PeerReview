@@ -174,3 +174,13 @@ check("skip parks the player without a vote", ns.db.pending["early leaver"] ~= n
 Leave()
 check("leaver not asked twice at the end", #ns.UI.queue == 1 and ns.UI.queue[1].key == "stays here", #ns.UI.queue)
 ns.UI.queue = {}; ns.UI.RefreshRate()
+
+-- server hops, trades, crafts: under 5 minutes never shows anywhere, boss kill or not
+ns.UI.queue = {}; ns.UI.RefreshRate()
+GROUP = { { "Hop Bot", "" } }
+Fire("GROUP_ROSTER_UPDATE"); Advance(180, 5)
+Fire("BOSS_KILL")
+check("short group hidden from rate-now list", #ns.SessionList(true) == 0, #ns.SessionList(true))
+Leave()
+check("no popup for a 3 minute group", #ns.UI.queue == 0 and ns.db.pending["hop bot"] == nil, #ns.UI.queue)
+LOG(fails == 0 and "ALL PASSED" or (fails .. " FAILED"))

@@ -507,7 +507,7 @@ function UI.RateNow()
   ns.Tracker.Scan()
   local list = ns.SessionList(true)
   if #list == 0 then list = ns.PendingList() end
-  if #list == 0 then ns.Print("nobody to rate. This lists your current group, or players you skipped today.") return false end
+  if #list == 0 then ns.Print("nobody to rate. This lists players you have been grouped with for 5 minutes or more, or players you skipped today.") return false end
   UI.ShowRate(list)
   return true
 end

@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 
 -- The version comes from the .toc file; the constant is only a fallback.
-ns.VERSION = "0.9.0"
+ns.VERSION = "0.9.1"
 do
   local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
   local ok, v = pcall(function() return get and get(ADDON, "Version") end)
@@ -14,7 +14,8 @@ ns.PROTO = 1
 ns.EXPIRE = 180 * 86400   -- votes older than this stop counting
 ns.MIN_RATERS = 3         -- community score stays hidden below this many voters
 ns.MIN_LEVEL = 20         -- both the voter and the rated player must be at least this level
-ns.STEPS = { 0, 5, 10, 15, 20, 30, 45, 60 }
+ns.STEPS = { 5, 10, 15, 20, 30, 45, 60 }
+ns.FLOOR = 300 -- grouped for less than this (server hops, trades, crafts): never shown anywhere
 ns.MAX_TAGS = 3
 -- Reasons a voter can attach. Fixed lists only (no free text); each is sent as one letter a-f.
 ns.TAGS = {
@@ -517,6 +518,7 @@ end
 local function Eligible(key, m)
   local s = ns.db.settings
   if ns.db.muted[key] then return false end
+  if (m.secs or 0) < ns.FLOOR then return false end
   local mine = ns.MyLevel()
   if (mine and mine < ns.MIN_LEVEL) or ns.TooLow(key) then return false end
   if s.skipFriends and m.friend then return false end
@@ -533,7 +535,7 @@ ns.Eligible = Eligible
 function ns.SessionList(all)
   local list = {}
   for key, m in pairs(ns.db.session.mates) do
-    if all or (Eligible(key, m) and not m.asked) then
+    if (m.secs or 0) >= ns.FLOOR and (all or (Eligible(key, m) and not m.asked)) then
       list[#list + 1] = { key = key, name = m.name, class = m.class, secs = m.secs or 0, boss = m.boss,
         friend = m.friend, guild = m.guild }
     end
@@ -672,6 +674,7 @@ local function InitDB()
   end
   -- 0.9: the realm-wide sync channel is part of sharing, not a separate switch.
   if ns.db.schema < 4 then ns.db.settings.channel = true; ns.db.schema = 4 end
+  if (ns.db.settings.minMinutes or 0) < 5 then ns.db.settings.minMinutes = 5 end
   Prune()
 end
 

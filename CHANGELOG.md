@@ -1,5 +1,9 @@
 # Peer Review
 
+## 0.9.1
+
+- Players you were grouped with for less than 5 minutes never show up, in the popup or anywhere else. No more popups after a server hop, a trade or a quick craft.
+
 ## 0.9.0
 
 Everything from the 0.8.2 to 0.8.6 betas, now as a full release:
