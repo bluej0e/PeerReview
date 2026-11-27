@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 
 -- The version comes from the .toc file; the constant is only a fallback.
-ns.VERSION = "0.9.1"
+ns.VERSION = "0.9.2"
 do
   local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
   local ok, v = pcall(function() return get and get(ADDON, "Version") end)
@@ -515,10 +515,25 @@ local function InDungeon()
   return inside and (kind == "party" or kind == "raid" or kind == "scenario") or false
 end
 
+-- "Something happened": we fought at the same time, were in an instance together, killed a boss,
+-- or completed a trade. Someone who only sat in the party does not count.
+local function Fighting(unit)
+  if not UnitAffectingCombat then return nil end
+  local ok, v = pcall(UnitAffectingCombat, unit)
+  if not ok or ns.IsSecret(v) then return nil end
+  return v and true or false
+end
+
+local function Active(m)
+  return (m.act or m.boss or (m.inst or 0) > 0) and true or false
+end
+ns.Active = Active
+
 local function Eligible(key, m)
   local s = ns.db.settings
   if ns.db.muted[key] then return false end
   if (m.secs or 0) < ns.FLOOR then return false end
+  if not Active(m) then return false end
   local mine = ns.MyLevel()
   if (mine and mine < ns.MIN_LEVEL) or ns.TooLow(key) then return false end
   if s.skipFriends and m.friend then return false end
@@ -592,6 +607,7 @@ function T.Scan()
     T.leftAt = nil
     local inst = InDungeon()
     local seen = {}
+    local meFighting = Fighting("player")
     for _, unit in ipairs(GroupUnits()) do
       if UnitExists(unit) then
         local full, key = UnitFull(unit)
@@ -609,6 +625,13 @@ function T.Scan()
           if T.present[key] then
             m.secs = m.secs + dt
             if inst then m.inst = (m.inst or 0) + dt end
+          end
+          if not m.act and meFighting ~= false then
+            local they = Fighting(unit)
+            -- if the client will not say who is in combat, my own combat is the best signal there is
+            if they == true or (they == nil and meFighting == true) or (meFighting == nil and they ~= false and InCombatLockdown and InCombatLockdown()) then
+              m.act = true
+            end
           end
           Relations(unit, m)
           local l = Level(unit)
@@ -727,6 +750,20 @@ local function OnEvent(event, ...)
     if not ns.IsSecret(success) and (success == 1 or success == true) then BossDown() end
   elseif event == "BOSS_KILL" then
     BossDown()
+  elseif event == "PLAYER_REGEN_DISABLED" then
+    T.Scan()
+    C_Timer.After(2, function() pcall(T.Scan) end)
+  elseif event == "TRADE_SHOW" then
+    local _, key = UnitFull("NPC")
+    T.trade = key
+  elseif event == "UI_INFO_MESSAGE" then
+    local a, b = ...
+    local msg = type(b) == "string" and b or a
+    if T.trade and ERR_TRADE_COMPLETE and msg == ERR_TRADE_COMPLETE then
+      local m = ns.db.session.mates[T.trade]
+      if m then m.act = true; ns.Log("traded with " .. T.trade) end
+      T.trade = nil
+    end
   elseif event == "PLAYER_REGEN_ENABLED" then
     if ns.UI.AfterCombat then ns.UI.AfterCombat() end
   end
@@ -734,7 +771,7 @@ end
 
 local ev = CreateFrame("Frame")
 for _, e in ipairs({ "ADDON_LOADED", "PLAYER_LOGIN", "GROUP_ROSTER_UPDATE", "GROUP_LEFT", "GROUP_JOINED",
-  "ENCOUNTER_END", "BOSS_KILL", "PLAYER_REGEN_ENABLED" }) do
+  "ENCOUNTER_END", "BOSS_KILL", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED", "TRADE_SHOW", "UI_INFO_MESSAGE" }) do
   pcall(ev.RegisterEvent, ev, e) -- an event this client does not have is skipped
 end
 ev:SetScript("OnEvent", function(_, event, ...)

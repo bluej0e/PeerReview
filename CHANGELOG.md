@@ -1,5 +1,9 @@
 # Peer Review
 
+## 0.9.2
+
+- The popup only asks about players something actually happened with: you fought together, were in a dungeon or raid together, killed a boss, or completed a trade. Someone who just sat in your party is ignored, however long they stayed.
+
 ## 0.9.1
 
 - Players you were grouped with for less than 5 minutes never show up, in the popup or anywhere else. No more popups after a server hop, a trade or a quick craft.

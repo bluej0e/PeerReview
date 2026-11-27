@@ -50,6 +50,9 @@ UISpecialFrames = {}
 SOUNDKIT = {}
 function PlaySound() end
 function InCombatLockdown() return COMBAT or false end
+FIGHT = true
+function UnitAffectingCombat() return FIGHT end
+ERR_TRADE_COMPLETE = "Trade complete."
 RAID_CLASS_COLORS = { MAGE = { r = .2, g = .8, b = 1 } }
 -- world state
 GROUP, INSTANCE, GUILDMATES, FRIENDS = {}, false, {}, {}
@@ -84,6 +87,7 @@ function UnitLevel(u) if u == "player" then return MYLEVEL end local i = tonumbe
 REGIONAL, MYNAME = false, "Rodrigo"
 function GetUnitName(u, showRealm)
   if u == "player" then return MYNAME end
+  if u == "NPC" then return GROUP_NPC end
   local i = tonumber(u:match("^party(%d)$")); local g = i and GROUP[i]
   if not g then return nil end
   if REGIONAL then return g[1] end

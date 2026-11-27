@@ -104,7 +104,7 @@ check("incoming removal drops the vote from the score", select(2, ns.Score("othe
 recv("V~1~other one,d," .. (CLOCK + 5), "Carl Voter-Azeroth")
 check("an older copy cannot bring a removed vote back", select(2, ns.Score("other one")) == 0)
 -- removed votes are asked about again
-check("removed player can be asked about again", ns.Eligible("mean person", { secs = 4000 }) == true)
+check("removed player can be asked about again", ns.Eligible("mean person", { secs = 4000, act = true }) == true)
 -- version notice needs two peers
 PRINTS = {}
 recv("H~1~9.9.9", "Peer One-Azeroth")
@@ -183,4 +183,15 @@ Fire("BOSS_KILL")
 check("short group hidden from rate-now list", #ns.SessionList(true) == 0, #ns.SessionList(true))
 Leave()
 check("no popup for a 3 minute group", #ns.UI.queue == 0 and ns.db.pending["hop bot"] == nil, #ns.UI.queue)
+
+-- someone who only sat in the party (no combat, no instance, no trade) is ignored
+FIGHT = false
+GROUP = { { "Bag Guest", "" }, { "Trade Pal", "" } }
+Fire("GROUP_ROSTER_UPDATE"); Advance(40 * 60, 5)
+check("idle guest not eligible after 40 minutes", ns.Eligible("bag guest", ns.db.session.mates["bag guest"]) == false)
+GROUP_NPC = "Trade Pal"; Fire("TRADE_SHOW"); Fire("UI_INFO_MESSAGE", 1, ERR_TRADE_COMPLETE)
+check("completed trade counts as activity", ns.db.session.mates["trade pal"].act == true)
+Leave()
+check("popup only for the player something happened with", #ns.UI.queue == 1 and ns.UI.queue[1].key == "trade pal", #ns.UI.queue)
+ns.UI.queue = {}; ns.UI.RefreshRate(); FIGHT = true
 LOG(fails == 0 and "ALL PASSED" or (fails .. " FAILED"))
