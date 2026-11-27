@@ -1,10 +1,10 @@
 ## Interface: 16001
 ## Interface-Camelot: 16001
 ## AllowLoadGameType: camelot
-## Title: Peer Review
+## Title: Social Score
 ## Notes: Thumbs up, neutral or thumbs down for the players you group with. Ratings are shared between everyone running the addon.
 ## Author: Rogar Thunderfury
-## Version: 0.9.2
+## Version: 0.10.0
 ## X-Curse-Project-ID: 1833344
 ## SavedVariables: PeerReviewDB
 ## IconTexture: Interface\AddOns\PeerReview\icon

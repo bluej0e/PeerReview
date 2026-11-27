@@ -1,5 +1,10 @@
 # Peer Review
 
+## 0.10.0
+
+- Peer Review is now called **Social Score**. Same addon, same ratings, nothing to reinstall: your votes and settings carry over, and it still shares with players on older versions.
+- The command is now `/score`. The old `/peer` still works.
+
 ## 0.9.2
 
 - The popup only asks about players something actually happened with: you fought together, were in a dungeon or raid together, killed a boss, or completed a trade. Someone who just sat in your party is ignored, however long they stayed.

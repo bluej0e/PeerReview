@@ -1,8 +1,8 @@
--- Peer Review: core (saved data, group tracking, votes, scores, events, slash commands)
+-- Social Score: core (saved data, group tracking, votes, scores, events, slash commands)
 local ADDON, ns = ...
 
 -- The version comes from the .toc file; the constant is only a fallback.
-ns.VERSION = "0.9.2"
+ns.VERSION = "0.10.0"
 do
   local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
   local ok, v = pcall(function() return get and get(ADDON, "Version") end)
@@ -54,7 +54,7 @@ local DEFAULTS = {
   pending = {},   -- [key] = { name, class, secs, boss, t }: skipped in the popup, can be reopened for a day
   synced = {},    -- [raterKey] = last time we asked them for their votes
   lvl = {},       -- [key] = { l = level, t = time }: levels this client saw with its own eyes in a group
-  seen = {},      -- [raterKey] = { t = time, n = "Name-Realm" }: Peer Review users heard from directly
+  seen = {},      -- [raterKey] = { t = time, n = "Name-Realm" }: Social Score users heard from directly
   session = { mates = {}, t = 0 },
   minimapAngle = 195,
 }
@@ -71,7 +71,7 @@ local function Merge(dst, src)
 end
 
 function ns.Print(msg)
-  print("|cff61d97aPeer Review|r: " .. tostring(msg))
+  print("|cff61d97aSocial Score|r: " .. tostring(msg))
 end
 
 -- Small diagnostic log kept in the saved-variables file (last 250 lines, this computer only).
@@ -427,7 +427,7 @@ function ns.Mute(key)
   if key then ns.db.muted[key] = true; ns.db.pending[key] = nil end
 end
 
--- Players skipped in the popup stay available for a day (/peer pending).
+-- Players skipped in the popup stay available for a day (/score pending).
 function ns.Park(it)
   if not it or it.fake or not it.key or Live(ns.db.my[it.key]) then return end
   ns.db.pending[it.key] = { name = it.name, class = it.class, secs = it.secs, boss = it.boss, t = time() }
@@ -716,7 +716,7 @@ local function OnEvent(event, ...)
       ns.db.welcomed = true
       C_Timer.After(6, function()
         ns.Print("installed. After a group you get a quick thumbs up / neutral / down for the players you spent time with.")
-        ns.Print("Ratings are shared automatically with other Peer Review users. Type |cffffd140/peer preview|r to see the popup and place it where you want, |cffffd140/peer|r for settings.")
+        ns.Print("Ratings are shared automatically with other Social Score users. Type |cffffd140/score preview|r to see the popup and place it where you want, |cffffd140/score|r for settings.")
         ns.Print("Vote on how the run went, not on the person. Nobody else ever sees a message from this addon.")
       end)
     end
@@ -783,8 +783,10 @@ ev:SetScript("OnEvent", function(_, event, ...)
 end)
 
 ---------------------------------------------------------------- slash commands
-SLASH_PEERREVIEW1 = "/peer"
-SLASH_PEERREVIEW2 = "/peerreview"
+SLASH_PEERREVIEW1 = "/score"
+SLASH_PEERREVIEW2 = "/socialscore"
+SLASH_PEERREVIEW3 = "/peer" -- old name, kept so nobody's macro breaks
+SLASH_PEERREVIEW4 = "/peerreview"
 SlashCmdList["PEERREVIEW"] = function(msg)
   if not ns.db then return end
   msg = (msg or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -812,7 +814,7 @@ SlashCmdList["PEERREVIEW"] = function(msg)
   elseif cmd == "version" then
     ns.Print("version " .. ns.VERSION .. ".")
   elseif cmd == "help" then
-    ns.Print("/peer (settings) | list (your ratings) | me (your own rating) | rate (current group) | pending (skipped today) | preview (see the popup) | feedback | version | /peer Name (look someone up)")
+    ns.Print("/score (settings) | list (your ratings) | me (your own rating) | rate (current group) | pending (skipped today) | preview (see the popup) | feedback | version | /score Name (look someone up)")
   else
     local full, key = ns.Full(msg)
     local line = key and ns.Summary(key)

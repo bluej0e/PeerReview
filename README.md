@@ -1,4 +1,4 @@
-# Peer Review
+# Social Score
 
 Player ratings for World of Warcraft: Forever. After a group, give each player a thumbs up, neutral or thumbs down. Ratings are shared directly between players who run the addon and shown in tooltips as "87% would group again".
 
@@ -8,7 +8,7 @@ Player ratings for World of Warcraft: Forever. After a group, give each player a
 
 Install from CurseForge, or copy this folder to `World of Warcraft/_forever_/Interface/AddOns/PeerReview`.
 
-Commands: `/peer`, `/peer list`, `/peer rate`, `/peer pending`, `/peer Name`, `/peer test`, `/peer sync`.
+Commands: `/score`, `/score list`, `/score me`, `/score rate`, `/score pending`, `/score preview`, `/score feedback`, `/score Name`. Formerly Peer Review; `/peer` still works.
 
 ## Development
 

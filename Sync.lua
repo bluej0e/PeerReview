@@ -1,11 +1,11 @@
--- Peer Review: sync between addon users (no server).
+-- Social Score: sync between addon users (no server).
 -- Trust rule: a vote is only accepted from the player who cast it. The game stamps the sender
 -- on every addon message, so nobody can submit votes in another player's name.
 --   H~1                      hello, sent to guild / group / sync channel
 --   Q~1~since                whisper: "send me your own votes newer than <since>"
 --   H~1~version              (hello also carries the addon version)
 --   V~1~target,u|n|d|x,time[,reasons];...   x = the sender took that vote back  the sender's own votes (reasons: up to 3 letters a-f)
---   D~1~Name-Realm;...       directory: other Peer Review users the sender has heard from
+--   D~1~Name-Realm;...       directory: other Social Score users the sender has heard from
 -- Databases are never copied between players. A directory only says who to ask; each listed
 -- player is then asked directly for their own votes, so an edited file cannot plant votes.
 local ADDON, ns = ...
@@ -311,7 +311,7 @@ function S.OnMessage(prefix, text, channel, sender)
   if not b or now - b.t > 60 then b = { t = now, n = 0 }; S.buckets[sk] = b end
   b.n = b.n + 1
   if b.n > 40 then S.stats.rejected = S.stats.rejected + 1 return end
-  if not S.peers[sk] then ns.Log(("heard another Peer Review user: %s via %s"):format(sk, tostring(channel))) end
+  if not S.peers[sk] then ns.Log(("heard another Social Score user: %s via %s"):format(sk, tostring(channel))) end
   S.peers[sk] = now
   ns.db.seen[sk] = { t = time(), n = full }
   S.stats.recv = S.stats.recv + 1
@@ -340,7 +340,7 @@ end
 function S.Status()
   if not On() then return "Sharing is off" end
   local n = S.PeerCount()
-  if n == 0 then return "Sharing on, no other Peer Review users seen yet" end
+  if n == 0 then return "Sharing on, no other Social Score users seen yet" end
   return ("Sharing on, %d other user%s seen this session"):format(n, n == 1 and "" or "s")
 end
 
@@ -357,7 +357,7 @@ function S.Diag()
     S.stats.sent, S.stats.failed or 0, S.stats.recv, S.stats.votes, S.stats.rejected, #S.queue)
   local known = 0
   for _ in pairs(ns.db.seen) do known = known + 1 end
-  out[#out + 1] = ("Peer Review users known %d, asked directly this session %d, waiting to be asked %d"):format(
+  out[#out + 1] = ("Social Score users known %d, asked directly this session %d, waiting to be asked %d"):format(
     known, S.stats.pulls, #S.pull)
   if S.stats.lastError then out[#out + 1] = "Last problem: " .. S.stats.lastError end
   return out

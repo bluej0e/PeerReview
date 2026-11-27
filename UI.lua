@@ -1,4 +1,4 @@
--- Peer Review: interface (rating popup, settings window, minimap button, tooltip lines)
+-- Social Score: interface (rating popup, settings window, minimap button, tooltip lines)
 local ADDON, ns = ...
 local UI = { queue = {} }
 ns.UI = UI
@@ -58,7 +58,7 @@ local function Header(f, sub)
   mark:SetSize(24, 24)
   mark:SetPoint("TOPLEFT", 11, -9)
   mark:SetTexture(LOGO)
-  f.title = Label(f, "Peer Review", "large")
+  f.title = Label(f, "Social Score", "large")
   f.title:SetPoint("TOPLEFT", 39, -11)
   f.sub = Label(f, sub or "", "small", C.dim)
   f.sub:SetPoint("TOPLEFT", 39, -30)
@@ -404,7 +404,7 @@ local function BuildRate()
     UI.RefreshRate()
   end)
   f.close:SetPoint("TOPRIGHT", -10, -10)
-  Tip(f.close, "Close", "Votes already cast are kept. Skipped players stay under /peer pending for a day.")
+  Tip(f.close, "Close", "Votes already cast are kept. Skipped players stay under /score pending for a day.")
   f.rows = {}
   for i = 1, ROWS do f.rows[i] = BuildRow(f, i) end
   f.more = Label(f, "", "small", C.dim)
@@ -445,7 +445,7 @@ function UI.RefreshRate()
           info = sum and ("just left  " .. sum) or ("just left, " .. info)
         end
         if not it.fake and (ns.Sync.peers[it.key] or ns.db.seen[it.key]) then
-          info = info .. "  |cffcca147uses Peer Review|r"
+          info = info .. "  |cffcca147uses Social Score|r"
         end
         r.info:SetText(info)
         local mine = ns.db.my[it.key]
@@ -563,7 +563,7 @@ local function BuildList()
   f.mine:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
     GameTooltip:SetText("Your rating", 1, .82, .25)
-    GameTooltip:AddLine("Built from votes other Peer Review users have shared with you. A score appears once 3 players have rated you.", .8, .8, .8, true)
+    GameTooltip:AddLine("Built from votes other Social Score users have shared with you. A score appears once 3 players have rated you.", .8, .8, .8, true)
     local _, why = ns.MyRating()
     if why then GameTooltip:AddLine(why) end
     GameTooltip:Show()
@@ -730,7 +730,7 @@ local function BuildFeedback()
       local ok, v, b = pcall(GetBuildInfo)
       if ok then client = (" | game %s (%s)"):format(tostring(v), tostring(b)) end
     end
-    local text = ("Peer Review %s%s | other users seen: %d"):format(ns.VERSION, client, ns.Sync.PeerCount())
+    local text = ("Social Score %s%s | other users seen: %d"):format(ns.VERSION, client, ns.Sync.PeerCount())
     f.info.value = text
     f.info:SetText(text)
     f.info:SetCursorPosition(0)
@@ -814,7 +814,7 @@ local function BuildOptions()
   local share = Check(f, "Share my votes and receive others'", "sync", function(on)
     if on then ns.Sync.JoinChannel() else ns.Sync.LeaveChannel() end
   end)
-  Tip(share, "Sharing", "Votes travel between Peer Review users through your guild, your group and a hidden realm-wide channel. Nothing is posted in chat.")
+  Tip(share, "Sharing", "Votes travel between Social Score users through your guild, your group and a hidden realm-wide channel. Nothing is posted in chat.")
   Add(share, 32)
 
   f.status = Label(f, "", "small", C.dim)
@@ -903,7 +903,7 @@ local function BuildMinimap()
   end)
   b:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-    GameTooltip:SetText("Peer Review", 1, .82, .25)
+    GameTooltip:SetText("Social Score", 1, .82, .25)
     GameTooltip:AddLine("Left click: rate my group, or my ratings", .8, .8, .8)
     GameTooltip:AddLine("Right click: settings", .8, .8, .8)
     GameTooltip:AddLine(ns.Sync.Status(), .68, .62, .52)
@@ -920,7 +920,7 @@ local function AddRating(tooltip, key)
   local line = ns.Summary(key)
   if not line then return end
   tooltip.peerReviewKey = key
-  tooltip:AddLine("|cffffd140Peer Review|r  " .. line)
+  tooltip:AddLine("|cffffd140Social Score|r  " .. line)
   local why = ns.TagLine(key)
   if why then tooltip:AddLine(why) end
   return true
