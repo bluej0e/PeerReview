@@ -5,15 +5,20 @@ ns.UI = UI
 
 -- Dark leather and gold: the game's own tooltip frame, with flat cards inside it.
 local C = {
-  bg = { .06, .045, .03, .96 }, edge = { .80, .63, .28, 1 },
-  card = { .13, .105, .075, .95 }, line = { .34, .27, .15, 1 }, input = { .04, .03, .02, 1 },
+  bg = { .06, .045, .03, 1 }, edge = { .80, .63, .28, 1 },
+  card = { .13, .105, .075, 1 }, line = { .34, .27, .15, 1 }, input = { .04, .03, .02, 1 },
   text = { .96, .93, .86 }, dim = { .68, .62, .52 },
   good = { .38, .85, .48 }, bad = { 1, .38, .33 }, gold = { 1, .82, .25 },
 }
-local WINDOW = { bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+-- Solid fill (the game's tooltip background is see-through), with the tooltip border around it.
+local WINDOW = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
   tile = true, tileSize = 16, edgeSize = 14, insets = { left = 3, right = 3, top = 3, bottom = 3 } }
 local FLAT = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 }
-local THUMB = "Interface\\AddOns\\PeerReview\\thumb"
+local THUMBS = {
+  [1] = "Interface\\AddOns\\PeerReview\\thumb_up",
+  [0] = "Interface\\AddOns\\PeerReview\\thumb_mid",
+  [-1] = "Interface\\AddOns\\PeerReview\\thumb_down",
+}
 local ROWS, ROW_H, WIDTH, HEAD = 6, 48, 380, 54
 local ROW_W = WIDTH - 16
 local VOTE_COLOR = { [1] = C.good, [0] = C.gold, [-1] = C.bad }
@@ -51,8 +56,7 @@ local function Header(f, sub)
   local mark = f:CreateTexture(nil, "ARTWORK")
   mark:SetSize(20, 20)
   mark:SetPoint("TOPLEFT", 13, -11)
-  mark:SetTexture(THUMB)
-  mark:SetVertexColor(C.gold[1], C.gold[2], C.gold[3], 1)
+  mark:SetTexture(THUMBS[1])
   f.title = Label(f, "Peer Review", "large")
   f.title:SetPoint("TOPLEFT", 39, -11)
   f.sub = Label(f, sub or "", "small", C.dim)
@@ -205,17 +209,16 @@ local THUMB_TIP = { [1] = "Would group again", [0] = "Neutral", [-1] = "Would no
 
 local function ThumbButton(parent, v)
   local b = CreateFrame("Button", nil, parent)
-  b:SetSize(30, 30)
+  b:SetSize(32, 32)
   b.tex = b:CreateTexture(nil, "ARTWORK")
-  b.tex:SetPoint("TOPLEFT", 3, -3)
-  b.tex:SetPoint("BOTTOMRIGHT", -3, 3)
-  b.tex:SetTexture(THUMB)
+  b.tex:SetPoint("TOPLEFT", 1, -1)
+  b.tex:SetPoint("BOTTOMRIGHT", -1, 1)
+  b.tex:SetTexture(THUMBS[v])
   local col = VOTE_COLOR[v]
-  if v == -1 then b.tex:SetTexCoord(0, 1, 1, 0) end
-  if v == 0 and b.tex.SetRotation then b.tex:SetRotation(math.rad(-90)) end -- sideways thumb
   local function Paint(self)
-    local a = (self.hover or self.picked) and 1 or .6
-    self.tex:SetVertexColor(col[1], col[2], col[3], a)
+    local a = (self.hover or self.picked) and 1 or .85
+    self.tex:SetVertexColor(1, 1, 1, a)
+    self.tex:SetDesaturated(self.dim and not self.hover or false)
   end
   b.Paint = Paint
   b:SetScript("OnEnter", function(self)
@@ -266,9 +269,9 @@ local function Chip(row, i)
     local on = it and it.picks and it.picks[i]
     local col = it and VOTE_COLOR[it.mode] or C.good
     if on then
-      self:SetBackdropColor(col[1] * .40, col[2] * .40, col[3] * .40, 1)
+      self:SetBackdropColor(col[1] * .16, col[2] * .16, col[3] * .16, 1)
       self:SetBackdropBorderColor(col[1], col[2], col[3], 1)
-      self.label:SetTextColor(1, 1, 1)
+      self.label:SetTextColor(col[1], col[2], col[3])
       self.icon:SetDesaturated(false); self.icon:SetAlpha(1)
     else
       local hot = self.hover
@@ -421,6 +424,10 @@ function UI.RefreshRate()
         r.up.picked = mine and mine.v == 1 or false
         r.mid.picked = mine and mine.v == 0 or false
         r.down.picked = mine and mine.v == -1 or false
+        local live = ns.Live(mine)
+        r.up.dim = live and mine.v ~= 1 or false
+        r.mid.dim = live and mine.v ~= 0 or false
+        r.down.dim = live and mine.v ~= -1 or false
         r.up:Paint(); r.mid:Paint(); r.down:Paint()
       end
       r:Show()
@@ -545,7 +552,6 @@ local function BuildList()
     r.thumb = r:CreateTexture(nil, "ARTWORK")
     r.thumb:SetSize(16, 16)
     r.thumb:SetPoint("LEFT", r.icon, "RIGHT", 6, 0)
-    r.thumb:SetTexture(THUMB)
     r.remove = Button(r, "Remove", 58, 20, function(self)
       local it = self:GetParent().item
       if it then ns.Unvote(it.key); UI.RefreshList() end
@@ -610,9 +616,7 @@ function UI.RefreshList()
       local col = VOTE_COLOR[it.v]
       r.stripe:SetColorTexture(col[1], col[2], col[3], 1)
       SetClassIcon(r.icon, it.class)
-      r.thumb:SetVertexColor(col[1], col[2], col[3], 1)
-      if it.v == -1 then r.thumb:SetTexCoord(0, 1, 1, 0) else r.thumb:SetTexCoord(0, 1, 0, 1) end
-      if r.thumb.SetRotation then r.thumb:SetRotation(it.v == 0 and math.rad(-90) or 0) end
+      r.thumb:SetTexture(THUMBS[it.v])
       r.name:SetText(ns.Short(it.name))
       r.name:SetTextColor(ClassColor(it.class))
       local why = ns.ReasonText(it.v, it.g)
@@ -843,9 +847,8 @@ local function BuildMinimap()
   bg:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
   bg:SetPoint("CENTER", 0, 1)
   local icon = b:CreateTexture(nil, "ARTWORK")
-  icon:SetSize(16, 16)
-  icon:SetTexture(THUMB)
-  icon:SetVertexColor(C.gold[1], C.gold[2], C.gold[3], 1)
+  icon:SetSize(19, 19)
+  icon:SetTexture(THUMBS[1])
   icon:SetPoint("CENTER", 0, 1)
   local ring = b:CreateTexture(nil, "OVERLAY")
   ring:SetSize(50, 50)

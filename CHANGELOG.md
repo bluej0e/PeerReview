@@ -1,5 +1,11 @@
 # Peer Review
 
+## 0.8.3
+
+- New thumbs up, neutral and thumbs down icons.
+- Windows are now solid, so the game world no longer shows through the text.
+- Picked reasons are easier to read.
+
 ## 0.8.2
 
 - New "Feedback or report a bug" button in the settings, with links you can copy.
