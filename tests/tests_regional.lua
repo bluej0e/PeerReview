@@ -157,3 +157,20 @@ PRINTS = {}; SlashCmdList.PEERREVIEW("help")
 check("help no longer mentions test or sync", not (PRINTS[1] or ""):find("test") and not (PRINTS[1] or ""):find("sync"))
 for _, p in ipairs(PRINTS) do if p:find("error") then LOG("PRINTED: " .. p); fails = fails + 1 end end
 LOG(fails == 0 and "ALL PASSED v0.8.2" or (fails .. " FAILED v0.8.2"))
+
+-- someone leaves while I stay in the group: asked about them right away
+ns.UI.queue = {}; ns.UI.RefreshRate()
+GROUP = { { "Early Leaver", "" }, { "Stays Here", "" } }
+Fire("GROUP_ROSTER_UPDATE"); Advance(31 * 60, 5)
+GROUP = { { "Stays Here", "" } }
+Fire("GROUP_ROSTER_UPDATE"); Advance(2)
+check("leaver not asked within 2 seconds", #ns.UI.queue == 0, #ns.UI.queue)
+Advance(8)
+check("leaver asked about while still grouped", #ns.UI.queue == 1 and ns.UI.queue[1].key == "early leaver" and ns.UI.queue[1].left == true, #ns.UI.queue)
+check("header names the leaver", ns.UI.rate.sub._text == "Early Leaver just left. Group with them again?", tostring(ns.UI.rate.sub._text))
+local row = ns.UI.rate.rows[1]
+row.skip._OnClick(row.skip)
+check("skip parks the player without a vote", ns.db.pending["early leaver"] ~= nil and ns.db.my["early leaver"] == nil and #ns.UI.queue == 0)
+Leave()
+check("leaver not asked twice at the end", #ns.UI.queue == 1 and ns.UI.queue[1].key == "stays here", #ns.UI.queue)
+ns.UI.queue = {}; ns.UI.RefreshRate()

@@ -119,6 +119,20 @@ local function Credit(parent)
   return b
 end
 
+-- Small square button with a picture instead of a word.
+local function IconButton(parent, texture, size, fn)
+  local b = CreateFrame("Button", nil, parent)
+  b:SetSize(size, size)
+  b.tex = b:CreateTexture(nil, "ARTWORK")
+  b.tex:SetAllPoints()
+  b.tex:SetTexture(texture)
+  b.tex:SetAlpha(.75)
+  b:SetScript("OnEnter", function(self) self.tex:SetAlpha(1) end)
+  b:SetScript("OnLeave", function(self) self.tex:SetAlpha(.75) end)
+  if fn then b:SetScript("OnClick", fn) end
+  return b
+end
+
 local function Tip(widget, title, body)
   widget:HookScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -312,17 +326,26 @@ local function BuildRow(f, i)
   r.icon = r:CreateTexture(nil, "ARTWORK")
   r.icon:SetSize(30, 30)
   r.icon:SetPoint("LEFT", 10, 0)
-  r.never = Button(r, "never", 44, 18, function(self)
+  r.never = IconButton(r, "Interface\\Buttons\\UI-GroupLoot-Pass-Up", 20, function(self)
     local it = self:GetParent().item
     if not it then return end
     if not it.fake then ns.Mute(it.key) end
     GameTooltip:Hide()
     UI.Drop(it.key)
   end)
-  r.never:SetPoint("RIGHT", -6, 0)
+  r.never:SetPoint("RIGHT", -7, 0)
   Tip(r.never, "Never ask me about this player", "No vote is cast. Undo it in the settings.")
+  r.skip = IconButton(r, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 24, function(self)
+    local it = self:GetParent().item
+    if not it then return end
+    ns.Park(it)
+    GameTooltip:Hide()
+    UI.Drop(it.key)
+  end)
+  r.skip:SetPoint("RIGHT", r.never, "LEFT", -3, 0)
+  Tip(r.skip, "Skip for now", "No vote is cast. You can still rate them later today from the minimap button.")
   r.down = ThumbButton(r, -1)
-  r.down:SetPoint("RIGHT", r.never, "LEFT", -8, 0)
+  r.down:SetPoint("RIGHT", r.skip, "LEFT", -5, 0)
   r.mid = ThumbButton(r, 0)
   r.mid:SetPoint("RIGHT", r.down, "LEFT", -4, 0)
   r.up = ThumbButton(r, 1)
@@ -404,7 +427,7 @@ function UI.RefreshRate()
       if sc then r.stripe:SetColorTexture(sc[1], sc[2], sc[3], 1) else r.stripe:SetColorTexture(cr, cg, cb, 1) end
       r.icon:SetShown(not tagging); r.name:SetShown(not tagging); r.info:SetShown(not tagging)
       r.up:SetShown(not tagging); r.mid:SetShown(not tagging); r.down:SetShown(not tagging)
-      r.never:SetShown(not tagging)
+      r.never:SetShown(not tagging); r.skip:SetShown(not tagging)
       r.tags:SetShown(tagging)
       if tagging then
         for c, chip in ipairs(r.chips) do
@@ -417,6 +440,10 @@ function UI.RefreshRate()
         r.name:SetText(ns.Short(it.name))
         r.name:SetTextColor(cr, cg, cb)
         local info = it.note or (it.boss and (Together(it.secs) .. ", boss kill") or Together(it.secs))
+        if it.left then
+          local sum = ns.Summary(it.key)
+          info = sum and ("just left  " .. sum) or ("just left, " .. info)
+        end
         if not it.fake and (ns.Sync.peers[it.key] or ns.db.seen[it.key]) then
           info = info .. "  |cffcca147uses Peer Review|r"
         end
@@ -435,6 +462,12 @@ function UI.RefreshRate()
     else
       r:Hide()
     end
+  end
+  local first = q[1]
+  if #q == 1 and first.left then
+    f.sub:SetText(ns.Short(first.name) .. " just left. Group with them again?")
+  else
+    f.sub:SetText("Would you group with them again?")
   end
   local extra = #q - shown
   f.more:SetText(extra > 0 and ("+" .. extra .. " more after these") or "")
@@ -778,12 +811,11 @@ local function BuildOptions()
   Add(Check(f, "Thumbs down also ignores the player", "ignoreDown"), 34)
 
   Head("SHARING")
-  Add(Check(f, "Share my votes and receive others'", "sync"))
-  local chan = Check(f, "Also use a realm-wide sync channel", "channel", function(on)
+  local share = Check(f, "Share my votes and receive others'", "sync", function(on)
     if on then ns.Sync.JoinChannel() else ns.Sync.LeaveChannel() end
   end)
-  Tip(chan, "Realm-wide sync channel", "Joins a hidden chat channel so votes also reach players outside your guild and group. Off by default.")
-  Add(chan, 32)
+  Tip(share, "Sharing", "Votes travel between Peer Review users through your guild, your group and a hidden realm-wide channel. Nothing is posted in chat.")
+  Add(share, 32)
 
   f.status = Label(f, "", "small", C.dim)
   f.status:SetPoint("TOPLEFT", 14, y)

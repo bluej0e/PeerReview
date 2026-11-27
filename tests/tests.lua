@@ -172,7 +172,7 @@ check("a relayer can only ever add one vote: their own", (function() local n = 0
 local function hidden(msg) for _, f in ipairs(FILTERS.CHAT_MSG_SYSTEM or {}) do if f(nil, "CHAT_MSG_SYSTEM", msg) then return true end end return false end
 check("offline notice hidden for users we asked", hidden("No player named 'Yan-Stormrage' is currently playing.") and hidden("No player named 'Zed' is currently playing."))
 check("other offline notices untouched", not hidden("No player named 'Somebodyelse' is currently playing."))
-check("channel off by default", ns.db.settings.channel == false)
+check("sync channel on by default", ns.db.settings.channel == true)
 
 -- level 20 gate
 LEVELS.Lowbie = 12; LEVELS.Altvoter = 5

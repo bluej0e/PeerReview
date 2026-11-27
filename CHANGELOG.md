@@ -1,5 +1,12 @@
 # Peer Review
 
+## 0.8.6
+
+- When someone leaves your group while you stay, the popup asks about them right away and shows their current rating.
+- New skip button (arrow) on every player: no vote now, rate them later the same day.
+- The "never" button is now a small no-entry icon.
+- Sharing now always uses the hidden realm-wide channel, so votes reach players outside your guild and group. The separate setting is gone.
+
 ## 0.8.5
 
 - Cleaner thumb icons: sharp at small sizes, no more jagged yellow edge.

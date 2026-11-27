@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 
 -- The version comes from the .toc file; the constant is only a fallback.
-ns.VERSION = "0.8.5"
+ns.VERSION = "0.8.6"
 do
   local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
   local ok, v = pcall(function() return get and get(ADDON, "Version") end)
@@ -42,7 +42,7 @@ local DEFAULTS = {
     skipFriends = true,   -- never ask about players on my friends list
     skipGuild = true,     -- never ask about guildmates
     sound = true, tooltip = true, warn = true,
-    sync = true, channel = false,
+    sync = true, channel = true,
     ignoreDown = false,   -- thumbs down also puts the player on the ignore list
   },
   my = {},        -- [key] = { v = 1|-1, t = time, name = "Name-Realm", class = "MAGE" }
@@ -533,7 +533,7 @@ ns.Eligible = Eligible
 function ns.SessionList(all)
   local list = {}
   for key, m in pairs(ns.db.session.mates) do
-    if all or Eligible(key, m) then
+    if all or (Eligible(key, m) and not m.asked) then
       list[#list + 1] = { key = key, name = m.name, class = m.class, secs = m.secs or 0, boss = m.boss,
         friend = m.friend, guild = m.guild }
     end
@@ -550,8 +550,21 @@ local function Finish()
   for _ in pairs(ses.mates) do total = total + 1 end
   ns.Log(("left group: %d players tracked, %d to ask about%s"):format(total, #list, fresh and "" or " (session too old)"))
   ses.mates, ses.t = {}, 0
-  T.present, T.warned = {}, {}
+  T.present, T.warned, T.gone = {}, {}, {}
   if #list > 0 and ns.UI and ns.UI.ShowRate then ns.UI.ShowRate(list) end
+end
+
+-- Someone left while I am still in the group: ask about them right away.
+local function Departed(key)
+  local m = ns.db.session.mates[key]
+  if not m or m.asked then return end
+  local ok = Eligible(key, m)
+  ns.Log(("%s left the group%s"):format(key, ok and ", asking" or ", not asking"))
+  if not ok then return end
+  m.asked = true
+  if ns.UI and ns.UI.ShowRate then
+    ns.UI.ShowRate({ { key = key, name = m.name, class = m.class, secs = m.secs or 0, boss = m.boss, left = true } })
+  end
 end
 
 local function Warn(key, m)
@@ -603,6 +616,21 @@ function T.Scan()
         end
       end
     end
+    -- Present a moment ago, missing now, and still missing 5 seconds later: they left.
+    T.gone = T.gone or {}
+    for key in pairs(T.present) do
+      if not seen[key] and not T.gone[key] then T.gone[key] = now end
+    end
+    local recheck
+    for key, at in pairs(T.gone) do
+      if seen[key] then T.gone[key] = nil
+      elseif now - at >= 5 then T.gone[key] = nil; Departed(key)
+      else recheck = true end
+    end
+    if recheck and not T.goneTimer then
+      T.goneTimer = true
+      C_Timer.After(5.2, function() T.goneTimer = nil; pcall(T.Scan) end)
+    end
     T.present = seen
     ses.t = time()
     T.was = true
@@ -642,6 +670,8 @@ local function InitDB()
     db.lvl, db.muted, db.pending, db.session = {}, {}, {}, { mates = {}, t = 0 }
     db.schema = 3
   end
+  -- 0.9: the realm-wide sync channel is part of sharing, not a separate switch.
+  if ns.db.schema < 4 then ns.db.settings.channel = true; ns.db.schema = 4 end
   Prune()
 end
 
