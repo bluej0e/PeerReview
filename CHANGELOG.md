@@ -1,5 +1,9 @@
 # Peer Review
 
+## 0.8.4
+
+- The minimap button and the addon icon now use the Peer Review logo.
+
 ## 0.8.3
 
 - New thumbs up, neutral and thumbs down icons.

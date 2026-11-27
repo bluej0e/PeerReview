@@ -19,6 +19,7 @@ local THUMBS = {
   [0] = "Interface\\AddOns\\PeerReview\\thumb_mid",
   [-1] = "Interface\\AddOns\\PeerReview\\thumb_down",
 }
+local LOGO = "Interface\\AddOns\\PeerReview\\logo"
 local ROWS, ROW_H, WIDTH, HEAD = 6, 48, 380, 54
 local ROW_W = WIDTH - 16
 local VOTE_COLOR = { [1] = C.good, [0] = C.gold, [-1] = C.bad }
@@ -54,9 +55,9 @@ end
 -- Title with the thumb mark and a thin gold rule under the header.
 local function Header(f, sub)
   local mark = f:CreateTexture(nil, "ARTWORK")
-  mark:SetSize(20, 20)
-  mark:SetPoint("TOPLEFT", 13, -11)
-  mark:SetTexture(THUMBS[1])
+  mark:SetSize(24, 24)
+  mark:SetPoint("TOPLEFT", 11, -9)
+  mark:SetTexture(LOGO)
   f.title = Label(f, "Peer Review", "large")
   f.title:SetPoint("TOPLEFT", 39, -11)
   f.sub = Label(f, sub or "", "small", C.dim)
@@ -842,18 +843,11 @@ local function BuildMinimap()
   b:SetFrameStrata("MEDIUM")
   b:SetFrameLevel(8)
   b:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
-  local bg = b:CreateTexture(nil, "BACKGROUND")
-  bg:SetSize(24, 24)
-  bg:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
-  bg:SetPoint("CENTER", 0, 1)
+  -- The logo is round with its own gold rim, so it needs no border art around it.
   local icon = b:CreateTexture(nil, "ARTWORK")
-  icon:SetSize(19, 19)
-  icon:SetTexture(THUMBS[1])
-  icon:SetPoint("CENTER", 0, 1)
-  local ring = b:CreateTexture(nil, "OVERLAY")
-  ring:SetSize(50, 50)
-  ring:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-  ring:SetPoint("TOPLEFT", 0, 0)
+  icon:SetSize(26, 26)
+  icon:SetTexture(LOGO)
+  icon:SetPoint("CENTER", 0, 0)
   local function Place()
     local a = math.rad(ns.db.minimapAngle or 195)
     local r = (Minimap:GetWidth() or 140) / 2 + 5
