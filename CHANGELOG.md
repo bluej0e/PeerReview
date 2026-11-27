@@ -1,5 +1,9 @@
 # Peer Review
 
+## 0.8.5
+
+- Cleaner thumb icons: sharp at small sizes, no more jagged yellow edge.
+
 ## 0.8.4
 
 - The minimap button and the addon icon now use the Peer Review logo.
