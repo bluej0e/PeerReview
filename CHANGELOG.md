@@ -1,5 +1,12 @@
 # Peer Review
 
+## 0.8.2
+
+- New "Feedback or report a bug" button in the settings, with links you can copy.
+- "My ratings" now shows your own rating, as other players have rated you. `/peer me` does the same.
+- "Preview popup" replaces the sample popup: see the rating window and drag it where you want it. It opens there from then on.
+- Simpler `/peer help`.
+
 ## 0.8.1
 
 - New command: `/peer version` shows which version you have installed.

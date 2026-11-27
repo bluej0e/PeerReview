@@ -4,7 +4,7 @@
 ## Title: Peer Review
 ## Notes: Thumbs up, neutral or thumbs down for the players you group with. Ratings are shared between everyone running the addon.
 ## Author: Rogar Thunderfury
-## Version: 0.8.1
+## Version: 0.8.2
 ## X-Curse-Project-ID: 1833344
 ## SavedVariables: PeerReviewDB
 ## IconTexture: Interface\AddOns\PeerReview\icon

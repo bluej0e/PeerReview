@@ -126,3 +126,34 @@ ns.UI.ShowRate({ { key = "alice smith", name = "Alice Smith-Azeroth", class = "M
 check("row marks players who use the addon", (ns.UI.rate.rows[1].info._text or ""):find("uses Peer Review") ~= nil, ns.UI.rate.rows[1].info._text)
 for _, p in ipairs(PRINTS) do if p:find("error") then LOG("PRINTED: " .. p); fails = fails + 1 end end
 LOG(fails == 0 and "ALL PASSED v0.8" or (fails .. " FAILED v0.8"))
+
+-- ===== v0.8.2 =====
+fails = 0
+PRINTS = {}; SlashCmdList.PEERREVIEW("me")
+check("/peer me with no votes", (PRINTS[1] or ""):find("no votes yet", 1, true) ~= nil, PRINTS[1])
+for i, who in ipairs({ "Ann One", "Ben Two", "Cat Three", "Dan Four" }) do
+  recv("V~1~rod tester," .. (i == 4 and "d" or "u") .. "," .. (CLOCK + i * 4000) .. ",a", who .. "-Azeroth")
+end
+local line = ns.MyRating()
+check("own rating from other players' votes", (line or ""):find("75%% would group again") ~= nil and (line or ""):find("4 votes") ~= nil, line)
+ns.UI.list:Hide(); ns.UI.ToggleList()
+check("my ratings shows own score", (ns.UI.list.mine.text._text or ""):find("75%%") ~= nil, ns.UI.list.mine.text._text)
+ns.UI.queue = {}; ns.UI.RefreshRate()
+SlashCmdList.PEERREVIEW("preview")
+check("/peer preview opens sample rows", ns.UI.rate:IsShown() and #ns.UI.queue == 4 and ns.UI.queue[1].fake == true)
+local before = 0; for _ in pairs(ns.db.my) do before = before + 1 end
+ns.UI.rate.rows[1].up._OnClick(ns.UI.rate.rows[1].up)
+local after = 0; for _ in pairs(ns.db.my) do after = after + 1 end
+check("preview votes are never saved", before == after)
+ns.UI.queue = {}; ns.UI.RefreshRate()
+SlashCmdList.PEERREVIEW("feedback"); ns.UI.feedback._OnShow()
+check("feedback window opens with a report line", ns.UI.feedback:IsShown() and (ns.UI.feedback.info.value or ""):find("Peer Review " .. ns.VERSION, 1, true) ~= nil, ns.UI.feedback.info.value)
+check("log records activity", type(ns.db.log) == "table" and #ns.db.log > 5)
+local found = false; for _, l in ipairs(ns.db.log) do if l:find("login: v") then found = true end end
+check("log has the login line", found)
+for i = 1, 400 do ns.Log("x" .. i) end
+check("log is capped at 250 lines", #ns.db.log == 250)
+PRINTS = {}; SlashCmdList.PEERREVIEW("help")
+check("help no longer mentions test or sync", not (PRINTS[1] or ""):find("test") and not (PRINTS[1] or ""):find("sync"))
+for _, p in ipairs(PRINTS) do if p:find("error") then LOG("PRINTED: " .. p); fails = fails + 1 end end
+LOG(fails == 0 and "ALL PASSED v0.8.2" or (fails .. " FAILED v0.8.2"))

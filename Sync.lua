@@ -102,6 +102,7 @@ local function Pump()
   if not ok or res == false then
     S.stats.failed = (S.stats.failed or 0) + 1
     S.stats.lastError = it.chan .. ": " .. tostring(ok and "send refused" or res)
+    ns.Log("send failed on " .. S.stats.lastError)
   else
     S.stats.sent = S.stats.sent + 1
   end
@@ -291,7 +292,7 @@ local function StoreVotes(body, sk)
     end
   end
   S.stats.votes = S.stats.votes + n
-  if n > 0 then ns.Dirty() end
+  if n > 0 then ns.Dirty(); ns.Log(("learned %d vote(s) from %s"):format(n, sk)) end
 end
 
 function S.OnMessage(prefix, text, channel, sender)
@@ -301,7 +302,7 @@ function S.OnMessage(prefix, text, channel, sender)
   local full, sk = ns.Full(sender)
   if not sk then return end
   if sk == ns.me then
-    if channel == "CHANNEL" and S.chanOK.CHANNEL == nil then S.chanOK.CHANNEL = true; S.Hello() end
+    if channel == "CHANNEL" and S.chanOK.CHANNEL == nil then S.chanOK.CHANNEL = true; ns.Log("sync channel works"); S.Hello() end
     return
   end
 
@@ -310,6 +311,7 @@ function S.OnMessage(prefix, text, channel, sender)
   if not b or now - b.t > 60 then b = { t = now, n = 0 }; S.buckets[sk] = b end
   b.n = b.n + 1
   if b.n > 40 then S.stats.rejected = S.stats.rejected + 1 return end
+  if not S.peers[sk] then ns.Log(("heard another Peer Review user: %s via %s"):format(sk, tostring(channel))) end
   S.peers[sk] = now
   ns.db.seen[sk] = { t = time(), n = full }
   S.stats.recv = S.stats.recv + 1

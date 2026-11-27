@@ -2,7 +2,7 @@
 local ADDON, ns = ...
 
 -- The version comes from the .toc file; the constant is only a fallback.
-ns.VERSION = "0.8.1"
+ns.VERSION = "0.8.2"
 do
   local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
   local ok, v = pcall(function() return get and get(ADDON, "Version") end)
@@ -71,6 +71,17 @@ end
 
 function ns.Print(msg)
   print("|cff61d97aPeer Review|r: " .. tostring(msg))
+end
+
+-- Small diagnostic log kept in the saved-variables file (last 250 lines, this computer only).
+-- It records what the addon did, so a bug report can be traced after the session.
+function ns.Log(msg)
+  local db = ns.db
+  if not db then return end
+  db.log = db.log or {}
+  local stamp = (type(date) == "function") and date("%m-%d %H:%M:%S") or tostring(time())
+  db.log[#db.log + 1] = stamp .. " " .. tostring(msg)
+  while #db.log > 250 do table.remove(db.log, 1) end
 end
 
 function ns.IsSecret(v)
@@ -205,6 +216,7 @@ function ns.Vote(key, v, info)
   end
   db.my[key] = { v = v, t = time(), name = info and info.name or key, class = info and info.class or nil }
   db.pending[key] = nil
+  ns.Log(("vote %s on %s"):format(v == 1 and "up" or v == 0 and "neutral" or "down", key))
   ns.Sync.PublishVote(key)
   if v == -1 and db.settings.ignoreDown and C_FriendList and C_FriendList.AddIgnore then
     pcall(C_FriendList.AddIgnore, ns.Regional() and ns.Short(db.my[key].name) or db.my[key].name)
@@ -217,6 +229,7 @@ function ns.Unvote(key)
   local r = ns.db.my[key]
   if not Live(r) then return end
   ns.db.my[key] = { v = "x", t = time(), name = r.name, class = r.class }
+  ns.Log("vote removed on " .. key)
   ns.Sync.PublishVote(key)
 end
 
@@ -430,6 +443,12 @@ function ns.PendingList()
   return list
 end
 
+-- Your own score, built from the votes other players have shared with this computer.
+function ns.MyRating()
+  if not ns.me then return nil end
+  return ns.Summary(ns.me), ns.TagLine(ns.me)
+end
+
 function ns.Counts()
   local mine, players = 0, 0
   for _, r in pairs(ns.db.my) do if Live(r) then mine = mine + 1 end end
@@ -527,6 +546,9 @@ local function Finish()
   local ses = ns.db.session
   local fresh = (time() - (ses.t or 0)) < 900
   local list = fresh and ns.SessionList(false) or {}
+  local total = 0
+  for _ in pairs(ses.mates) do total = total + 1 end
+  ns.Log(("left group: %d players tracked, %d to ask about%s"):format(total, #list, fresh and "" or " (session too old)"))
   ses.mates, ses.t = {}, 0
   T.present, T.warned = {}, {}
   if #list > 0 and ns.UI and ns.UI.ShowRate then ns.UI.ShowRate(list) end
@@ -566,6 +588,7 @@ function T.Scan()
             if ok then class = Str(file) end
             m = { name = full, class = class, secs = 0, inst = 0 }
             ses.mates[key] = m
+            ns.Log("grouped with " .. key)
             if ns.Sync.OnGroupChange then ns.Sync.OnGroupChange() end
           end
           if T.present[key] then
@@ -637,19 +660,30 @@ local function OnEvent(event, ...)
       ns.db.welcomed = true
       C_Timer.After(6, function()
         ns.Print("installed. After a group you get a quick thumbs up / neutral / down for the players you spent time with.")
-        ns.Print("Ratings are shared automatically with other Peer Review users. Type |cffffd140/peer test|r to see the popup, |cffffd140/peer|r for settings.")
+        ns.Print("Ratings are shared automatically with other Peer Review users. Type |cffffd140/peer preview|r to see the popup and place it where you want, |cffffd140/peer|r for settings.")
         ns.Print("Vote on how the run went, not on the person. Nobody else ever sees a message from this addon.")
       end)
     end
     -- Group data arrives a moment after login; do not treat that gap as "left the group".
     C_Timer.After(8, function()
       if not ns.me then local _, k = UnitFull("player"); ns.me = k end
+      local build = ""
+      if type(GetBuildInfo) == "function" then
+        local ok, v, b, _, toc = pcall(GetBuildInfo)
+        if ok then build = (" client %s build %s toc %s"):format(tostring(v), tostring(b), tostring(toc)) end
+      end
+      ns.Log(("login: v%s me=%s realm=%s regional=%s%s"):format(ns.VERSION, tostring(ns.me), ns.Realm(),
+        tostring(ns.Regional()), build))
       T.ready, T.last = true, GetTime()
       T.Scan()
     end)
     C_Timer.NewTicker(5, function()
       local ok, err = pcall(T.Scan)
-      if not ok and not T.err then T.err = true; ns.Print("|cffff5555error|r in tracker: " .. tostring(err)) end
+      if not ok and not T.err then
+        T.err = true
+        ns.Log("ERROR in tracker: " .. tostring(err))
+        ns.Print("|cffff5555error|r in tracker: " .. tostring(err))
+      end
     end)
   elseif not ns.db then
     return
@@ -672,7 +706,10 @@ for _, e in ipairs({ "ADDON_LOADED", "PLAYER_LOGIN", "GROUP_ROSTER_UPDATE", "GRO
 end
 ev:SetScript("OnEvent", function(_, event, ...)
   local ok, err = pcall(OnEvent, event, ...)
-  if not ok then ns.Print("|cffff5555error|r in " .. event .. ": " .. tostring(err)) end
+  if not ok then
+    ns.Log("ERROR in " .. event .. ": " .. tostring(err))
+    ns.Print("|cffff5555error|r in " .. event .. ": " .. tostring(err))
+  end
 end)
 
 ---------------------------------------------------------------- slash commands
@@ -690,14 +727,22 @@ SlashCmdList["PEERREVIEW"] = function(msg)
     ns.UI.ShowPending()
   elseif cmd == "list" or cmd == "ratings" then
     ns.UI.ToggleList()
-  elseif cmd == "test" then
-    ns.UI.Test()
+  elseif cmd == "preview" then
+    ns.UI.Preview()
+  elseif cmd == "me" then
+    local line, why = ns.MyRating()
+    ns.Print("your rating: " .. (line or "no votes yet. A score appears once 3 players have rated you.") .. (why and ("  " .. why) or ""))
+  elseif cmd == "feedback" or cmd == "bug" then
+    ns.UI.ToggleFeedback()
   elseif cmd == "sync" then
     for _, line in ipairs(ns.Sync.Diag()) do ns.Print(line) end
+  elseif cmd == "log" then
+    local log = ns.db.log or {}
+    for i = math.max(1, #log - 14), #log do ns.Print(log[i]) end
   elseif cmd == "version" then
     ns.Print("version " .. ns.VERSION .. ".")
   elseif cmd == "help" then
-    ns.Print("/peer (settings) | list (your ratings) | rate (current group) | pending (players you skipped today) | test (sample popup) | sync (status) | version | /peer Name (look someone up)")
+    ns.Print("/peer (settings) | list (your ratings) | me (your own rating) | rate (current group) | pending (skipped today) | preview (see the popup) | feedback | version | /peer Name (look someone up)")
   else
     local full, key = ns.Full(msg)
     local line = key and ns.Summary(key)

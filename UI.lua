@@ -444,6 +444,7 @@ end
 
 -- Adds players to the popup. Waits for combat to end before showing.
 function UI.ShowRate(list)
+  if #list > 0 then ns.Log(("popup: %d player(s)%s"):format(#list, list[1].fake and " (preview)" or "")) end
   local have = {}
   for _, it in ipairs(UI.queue) do have[it.key] = true end
   for _, it in ipairs(list) do
@@ -482,7 +483,8 @@ function UI.ShowPending()
   UI.ShowRate(list)
 end
 
-function UI.Test()
+-- Sample rows so players can see the popup and drag it where they want it. Nothing is saved.
+function UI.Preview()
   UI.ShowRate({
     { key = "test1-none", name = "Thrallson-Test", class = "SHAMAN", secs = 2520, boss = true, fake = true },
     { key = "test2-none", name = "Stabbymcstab-Test", class = "ROGUE", secs = 2460, boss = true, fake = true },
@@ -491,26 +493,48 @@ function UI.Test()
   })
 end
 
+UI.Test = UI.Preview
+
 ---------------------------------------------------------------- my ratings
-local LIST_ROWS, LIST_H, LIST_W = 10, 30, 480
+local LIST_ROWS, LIST_H, LIST_W, ME_H = 10, 30, 480, 32
 local VOTE_WORD = { [1] = "up", [0] = "neutral", [-1] = "down" }
 
 local function BuildList()
   local f = Window("PeerReviewListFrame")
   UI.list = f
-  f:SetSize(LIST_W, HEAD + LIST_ROWS * LIST_H + 44)
+  f:SetSize(LIST_W, HEAD + ME_H + LIST_ROWS * LIST_H + 44)
   if not Movable(f, "listPos") then f:SetPoint("CENTER", UIParent, "CENTER", 0, 40) end
   f:Hide()
   if UISpecialFrames then table.insert(UISpecialFrames, "PeerReviewListFrame") end
   Header(f, "")
   local close = Button(f, "x", 20, 20, function() f:Hide() end)
   close:SetPoint("TOPRIGHT", -10, -10)
+  -- your own score, as other players have rated you
+  f.mine = Card(f)
+  f.mine:SetSize(LIST_W - 16, ME_H - 5)
+  f.mine:SetPoint("TOPLEFT", 8, -HEAD)
+  f.mine:SetBackdropBorderColor(C.edge[1], C.edge[2], C.edge[3], .6)
+  f.mine.text = Label(f.mine, "")
+  f.mine.text:SetPoint("LEFT", 10, 0)
+  f.mine.text:SetPoint("RIGHT", -10, 0)
+  f.mine.text:SetWordWrap(false)
+  f.mine:EnableMouse(true)
+  f.mine:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    GameTooltip:SetText("Your rating", 1, .82, .25)
+    GameTooltip:AddLine("Built from votes other Peer Review users have shared with you. A score appears once 3 players have rated you.", .8, .8, .8, true)
+    local _, why = ns.MyRating()
+    if why then GameTooltip:AddLine(why) end
+    GameTooltip:Show()
+  end)
+  f.mine:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
   f.page = 1
   f.rows = {}
   for i = 1, LIST_ROWS do
     local r = Card(f)
     r:SetSize(LIST_W - 16, LIST_H - 3)
-    r:SetPoint("TOPLEFT", 8, -HEAD - (i - 1) * LIST_H)
+    r:SetPoint("TOPLEFT", 8, -HEAD - ME_H - (i - 1) * LIST_H)
     r.stripe = r:CreateTexture(nil, "ARTWORK")
     r.stripe:SetWidth(3)
     r.stripe:SetPoint("TOPLEFT", 1, -1)
@@ -556,7 +580,7 @@ local function BuildList()
     f.rows[i] = r
   end
   f.empty = Label(f, "You haven't rated anyone yet. Ratings appear here after your first group.", nil, C.dim)
-  f.empty:SetPoint("TOPLEFT", 16, -HEAD - 10)
+  f.empty:SetPoint("TOPLEFT", 16, -HEAD - ME_H - 10)
   f.empty:SetWidth(LIST_W - 32)
   f.pageText = Label(f, "", "small", C.dim)
   f.pageText:SetPoint("BOTTOM", 0, 26)
@@ -576,6 +600,8 @@ function UI.RefreshList()
   local pages = math.max(1, math.ceil(#list / LIST_ROWS))
   f.page = math.min(f.page, pages)
   f.sub:SetText(#list == 1 and "You have rated 1 player." or ("You have rated " .. #list .. " players."))
+  local mine = ns.MyRating()
+  f.mine.text:SetText("|cffffd140Your rating|r   " .. (mine or "|cffada085no votes yet|r"))
   f.empty:SetShown(#list == 0)
   for i = 1, LIST_ROWS do
     local r, it = f.rows[i], list[(f.page - 1) * LIST_ROWS + i]
@@ -605,6 +631,77 @@ function UI.ToggleList()
   if not UI.list then return end
   UI.list:SetShown(not UI.list:IsShown())
   if UI.list:IsShown() then UI.RefreshList() end
+end
+
+---------------------------------------------------------------- feedback
+local LINKS = {
+  { "Report a bug or suggest something (GitHub):", "https://github.com/bluej0e/PeerReview/issues/new" },
+  { "Leave a comment (CurseForge):", "https://www.curseforge.com/wow/addons/peer-review-player-ratings" },
+}
+
+-- A game window cannot open a web page, so the links are shown ready to copy.
+local function CopyBox(parent, text, width)
+  local e = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
+  e:SetSize(width, 22)
+  e:SetBackdrop(FLAT)
+  e:SetBackdropColor(C.input[1], C.input[2], C.input[3], 1)
+  e:SetBackdropBorderColor(C.line[1], C.line[2], C.line[3], 1)
+  e:SetFontObject("GameFontHighlightSmall")
+  e:SetTextInsets(6, 6, 0, 0)
+  e:SetAutoFocus(false)
+  e.value = text
+  e:SetText(text)
+  e:SetCursorPosition(0)
+  e:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
+  e:SetScript("OnMouseUp", function(self) self:SetFocus(); self:HighlightText() end)
+  e:SetScript("OnTextChanged", function(self, user)
+    if user then self:SetText(self.value); self:HighlightText() end
+  end)
+  e:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+  e:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+  return e
+end
+
+local function BuildFeedback()
+  local f = Window("PeerReviewFeedbackFrame")
+  UI.feedback = f
+  f:SetWidth(430)
+  if not Movable(f, "feedbackPos") then f:SetPoint("CENTER", UIParent, "CENTER", 0, 60) end
+  f:Hide()
+  if UISpecialFrames then table.insert(UISpecialFrames, "PeerReviewFeedbackFrame") end
+  Header(f, "Click a link, press Ctrl+C, then paste it in your browser.")
+  local close = Button(f, "x", 20, 20, function() f:Hide() end)
+  close:SetPoint("TOPRIGHT", -10, -10)
+  local y = -(HEAD + 4)
+  for _, link in ipairs(LINKS) do
+    local l = Label(f, link[1], "small", C.dim)
+    l:SetPoint("TOPLEFT", 14, y)
+    local box = CopyBox(f, link[2], 402)
+    box:SetPoint("TOPLEFT", 14, y - 16)
+    y = y - 48
+  end
+  local l = Label(f, "Reporting a bug? Copy this line into it:", "small", C.dim)
+  l:SetPoint("TOPLEFT", 14, y)
+  f.info = CopyBox(f, "", 402)
+  f.info:SetPoint("TOPLEFT", 14, y - 16)
+  y = y - 48
+  f:SetHeight(-y + 8)
+  f:SetScript("OnShow", function()
+    local client = ""
+    if type(GetBuildInfo) == "function" then
+      local ok, v, b = pcall(GetBuildInfo)
+      if ok then client = (" | game %s (%s)"):format(tostring(v), tostring(b)) end
+    end
+    local text = ("Peer Review %s%s | other users seen: %d"):format(ns.VERSION, client, ns.Sync.PeerCount())
+    f.info.value = text
+    f.info:SetText(text)
+    f.info:SetCursorPosition(0)
+  end)
+end
+
+function UI.ToggleFeedback()
+  if not UI.feedback then return end
+  UI.feedback:SetShown(not UI.feedback:IsShown())
 end
 
 ---------------------------------------------------------------- settings window
@@ -694,7 +791,8 @@ local function BuildOptions()
   mine:SetPoint("TOPLEFT", 14, y)
   local now = Button(f, "Rate group", 88, 22, function() UI.RateNow() end)
   now:SetPoint("LEFT", mine, "RIGHT", 6, 0)
-  local test = Button(f, "Sample popup", 100, 22, function() UI.Test() end)
+  local test = Button(f, "Preview popup", 100, 22, function() UI.Preview() end)
+  Tip(test, "Preview the popup", "Shows the rating popup with sample players. Drag it where you want it; it opens there from now on. Nothing is saved.")
   test:SetPoint("LEFT", now, "RIGHT", 6, 0)
   f.unmute = Button(f, "", 128, 22, function()
     ns.db.muted = {}
@@ -702,11 +800,13 @@ local function BuildOptions()
   end)
   f.unmute:SetPoint("LEFT", test, "RIGHT", 6, 0)
   Tip(f.unmute, "Clear the never-ask list", "Players you marked \"never\" can show up in the popup again.")
-  y = y - 22
+  y = y - 30
+  local fb = Button(f, "Feedback or report a bug", 190, 22, function() UI.ToggleFeedback() end)
+  fb:SetPoint("TOPLEFT", 14, y)
   local credit = Credit(f)
-  credit:SetPoint("TOP", f, "TOP", 0, y - 8)
+  credit:SetPoint("TOPRIGHT", -14, y - 4)
   y = y - 22
-  f:SetHeight(-y + 12)
+  f:SetHeight(-y + 14)
 
   f:SetScript("OnShow", function()
     for _, w in ipairs(f.items) do if w.Load then w.Load() end end
@@ -855,6 +955,7 @@ end
 function UI.Build()
   BuildRate()
   BuildList()
+  BuildFeedback()
   BuildOptions()
   BuildMinimap()
   HookTooltips()
